@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  memora-app:
+    build: .
+    container_name: memora_container
+    restart: unless-stopped
+    ports:
+      - "8501:8501"  # Web UI
+      - "8000:8000"  # API Server
+    volumes:
+      - ./app:/app/app        # Hot Reload
+      - ./data:/app/data      # Data Storage
+    environment:
+      - TZ=Asia/Seoul
+    # GPU 사용을 원할 경우 주석 해제 (NVIDIA)
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]

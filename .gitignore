@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.env
+
+# Data & DB (개인 데이터는 절대 공개되면 안 됨)
+data/
+*.db
+*.log
+*.mp3
+*.wav
+*.m4a
+
+# OS
+.DS_Store
+Thumbs.db
