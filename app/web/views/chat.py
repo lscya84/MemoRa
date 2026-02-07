@@ -3,37 +3,34 @@ import requests
 import os
 import json
 
-# 환경변수에서 주소 가져오기 (없으면 기본값)
-OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
-
 def chat_page():
     st.header("💬 AI 비서와 대화하기")
+    
+    # 설정된 모델 확인
+    current_model = st.session_state.get("ollama_model", "gemma2:2b")
+    st.caption(f"Current Engine: {current_model}")
 
-    # 세션 상태 초기화 (대화 기록 저장용)
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
-    # 기존 대화 내용 화면에 표시
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
 
-    # 사용자 입력 처리
     if prompt := st.chat_input("무엇을 도와드릴까요?"):
-        # 사용자 메시지 표시
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.markdown(prompt)
 
-        # AI 응답 생성 (스트리밍)
         with st.chat_message("assistant"):
             message_placeholder = st.empty()
             full_response = ""
             
+            OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
+            
             try:
-                # Ollama API 호출
                 payload = {
-                    "model": "gemma2:2b",
+                    "model": current_model, # 동적 모델 적용
                     "prompt": prompt,
                     "stream": True
                 }
@@ -46,9 +43,7 @@ def chat_page():
                                 message_placeholder.markdown(full_response + "▌")
                                 
                 message_placeholder.markdown(full_response)
-                
-                # AI 응답 저장
                 st.session_state.messages.append({"role": "assistant", "content": full_response})
 
             except Exception as e:
-                st.error(f"AI 서버 연결 오류: {e}")
+                st.error(f"AI 서버({OLLAMA_URL}) 연결 오류: {e}")

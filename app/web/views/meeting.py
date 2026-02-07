@@ -5,12 +5,12 @@ import json
 from faster_whisper import WhisperModel
 from datetime import datetime
 
-# 모델 캐싱 (매번 로딩하지 않도록 설정)
+# 모델 로드 (캐싱하여 속도 향상)
+# 주의: Streamlit의 캐싱은 해시 가능한 인자여야 하므로 모델 사이즈를 인자로 받음
 @st.cache_resource
-def load_whisper_model():
-    # N100 CPU 환경을 고려하여 'tiny' 또는 'base' 모델 사용 권장
-    # 성능이 부족하면 'tiny', 좀 더 정확한 걸 원하면 'small'로 변경 가능
-    return WhisperModel("base", device="cpu", compute_type="int8")
+def load_whisper_model(model_size):
+    # N100 CPU 환경 최적화 (int8)
+    return WhisperModel(model_size, device="cpu", compute_type="int8")
 
 def meeting_page():
     st.header("🎙️ 회의 녹음 분석")
@@ -20,70 +20,97 @@ def meeting_page():
     uploaded_file = st.file_uploader("녹음 파일 선택 (mp3, wav, m4a)", type=["mp3", "wav", "m4a"])
 
     if uploaded_file is not None:
-        # 파일 저장 (임시)
-        save_path = os.path.join("data", uploaded_file.name)
+        # data 폴더 확인 및 생성
         os.makedirs("data", exist_ok=True)
+        save_path = os.path.join("data", uploaded_file.name)
         
         with open(save_path, "wb") as f:
             f.write(uploaded_file.getbuffer())
         
-        st.success(f"파일 업로드 완료: {uploaded_file.name}")
+        st.info(f"파일 준비 완료: {uploaded_file.name}")
 
-        # 2. 텍스트 변환 (STT) 버튼
-        if st.button("📝 텍스트 변환 및 요약 시작"):
-            model = load_whisper_model()
+        # 2. 분석 시작 버튼
+        if st.button("🚀 분석 시작 (Transcribe & Summarize)", type="primary"):
+            current_model_size = st.session_state.whisper_model_size
+            model = load_whisper_model(current_model_size)
             
-            with st.spinner("열심히 받아적는 중입니다... (CPU 성능에 따라 시간 소요)"):
+            # --- STT 단계 ---
+            st.markdown("### 1. 텍스트 변환 중...")
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+            
+            try:
+                # faster-whisper 실행
                 segments, info = model.transcribe(save_path, beam_size=5)
                 
                 full_text = ""
-                progress_bar = st.progress(0)
+                segment_list = [] # 타임스탬프 등 저장용
                 
-                # 변환 과정 실시간 표시
+                # 제너레이터이므로 루프를 돌며 처리
                 for i, segment in enumerate(segments):
                     full_text += segment.text + " "
-                    # (진행률은 정확히 알 수 없으므로 시각적 효과만)
-                    if i % 10 == 0:
-                        progress_bar.progress(min(i, 100))
+                    segment_list.append(segment)
+                    status_text.text(f"처리 중: {segment.start:.1f}s ~ {segment.end:.1f}s")
+                    # 진행률 시각화 (임의 계산)
+                    if i < 90: progress_bar.progress(i + 1)
                 
                 progress_bar.progress(100)
-            
-            st.success("변환 완료!")
-            
-            # 결과 보여주기
-            with st.expander("원문 보기 (Transcript)", expanded=False):
-                st.text_area("전체 대화 내용", full_text, height=200)
+                status_text.text("텍스트 변환 완료!")
+                
+                with st.expander("원문 보기 (Transcript)", expanded=False):
+                    st.text_area("전체 대화 내용", full_text, height=150)
 
-            # 3. AI 요약 요청 (Ollama)
-            st.markdown("### 🧠 AI 회의 요약")
-            summary_placeholder = st.empty()
-            summary_text = ""
+                # --- 요약 단계 ---
+                st.markdown("### 2. AI 요약 및 분석")
+                summary_placeholder = st.empty()
+                summary_result = ""
 
-            prompt = f"""
-            아래 회의 내용을 보고서 형식으로 깔끔하게 요약해줘.
-            중요한 결정 사항과 할 일(Action Item)을 따로 정리해줘.
-            
-            [회의 내용]
-            {full_text}
-            """
+                prompt = f"""
+                다음 회의 녹취록을 전문적인 비즈니스 보고서 형태로 요약해줘.
+                
+                [요청 사항]
+                1. 전체 내용을 3줄로 핵심 요약할 것.
+                2. 주요 논의 사항을 불렛 포인트로 정리할 것.
+                3. 결정된 사항(Decisions)과 향후 할 일(Action Items)을 명확히 분리할 것.
 
-            try:
+                [녹취록]
+                {full_text}
+                """
+
+                # Ollama 호출
                 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
+                llm_model = st.session_state.ollama_model
+                
                 payload = {
-                    "model": "gemma2:2b",
+                    "model": llm_model,
                     "prompt": prompt,
                     "stream": True
                 }
                 
-                with requests.post(f"{OLLAMA_URL}/api/generate", json=payload, stream=True) as response:
-                    for line in response.iter_lines():
-                        if line:
-                            data = json.loads(line.decode("utf-8"))
-                            if "response" in data:
-                                summary_text += data["response"]
-                                summary_placeholder.markdown(summary_text + "▌")
-                
-                summary_placeholder.markdown(summary_text)
-                
+                try:
+                    with requests.post(f"{OLLAMA_URL}/api/generate", json=payload, stream=True) as response:
+                        for line in response.iter_lines():
+                            if line:
+                                data = json.loads(line.decode("utf-8"))
+                                if "response" in data:
+                                    summary_result += data["response"]
+                                    summary_placeholder.markdown(summary_result + "▌")
+                    
+                    summary_placeholder.markdown(summary_result)
+
+                    # --- 결과 저장 (History 연동) ---
+                    record = {
+                        "date": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                        "filename": uploaded_file.name,
+                        "full_text": full_text,
+                        "summary": summary_result,
+                        "model": f"{llm_model} + Whisper-{current_model_size}"
+                    }
+                    st.session_state.meeting_history.append(record)
+                    st.success("✅ 분석 결과가 회의록에 저장되었습니다.")
+
+                except Exception as e:
+                    st.error(f"Ollama 연결 오류: {e}")
+
             except Exception as e:
-                st.error(f"요약 중 오류 발생: {e}")
+                st.error(f"Whisper 변환 오류: {e}")
