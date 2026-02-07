@@ -1,72 +1,78 @@
 import streamlit as st
-from utils import load_config, save_config, get_ollama_models
 
 def settings_page():
-    st.header("⚙️ 환경 설정")
-    st.caption("AI 모델과 시스템 설정을 변경합니다.")
+    st.header("⚙️ 시스템 설정 (Zero-Config)")
+    st.caption("서버 재시작 없이 AI 엔진과 시스템 동작 방식을 즉시 변경합니다.")
 
-    # 현재 설정 불러오기
-    current_config = load_config()
+    st.markdown("---")
 
-    with st.form("settings_form"):
-        st.subheader("🤖 AI 모델 설정")
+    # 1. 동적 엔진 설정 (Dynamic Engine)
+    with st.container(border=True):
+        st.subheader("🤖 AI 엔진 설정")
         
-        # 1. Ollama 모델 선택 (서버에서 목록 가져오기)
-        available_models = get_ollama_models()
-        # 현재 설정된 모델이 목록에 없으면 기본값 추가
-        index = 0
-        if current_config["ai_model"] in available_models:
-            index = available_models.index(current_config["ai_model"])
-            
-        selected_model = st.selectbox(
-            "사용할 AI 모델 (Ollama)", 
-            available_models, 
-            index=index
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("#### 🗣️ STT (Whisper)")
+            # Whisper 모델 크기 선택
+            st.selectbox(
+                "Whisper 모델 크기",
+                ["tiny", "base", "small", "medium", "large-v3"],
+                key="whisper_model",
+                help="N100 등 저전력 서버는 'tiny' 또는 'base' 권장"
+            )
+            # 하드웨어 가속 설정
+            st.selectbox(
+                "연산 장치 (Device)",
+                ["cpu", "cuda", "auto"],
+                key="whisper_device",
+                help="GPU가 없으면 'cpu'를 선택하세요."
+            )
+            st.selectbox(
+                "정밀도 (Compute Type)",
+                ["int8", "float16", "float32"],
+                key="whisper_compute",
+                help="int8은 메모리를 적게 사용합니다 (N100 권장)."
+            )
+
+        with col2:
+            st.markdown("#### 🧠 LLM (Ollama)")
+            # Ollama 설정
+            st.text_input(
+                "Ollama 서버 URL",
+                key="ollama_url",
+                help="예: http://localhost:11434"
+            )
+            st.text_input(
+                "사용할 모델명",
+                key="ollama_model",
+                placeholder="예: gemma2:2b, llama3",
+                help="Ollama에 설치된 모델 이름을 입력하세요."
+            )
+
+    # 2. 저장소 및 프라이버시 (Storage Efficient & Privacy)
+    with st.container(border=True):
+        st.subheader("💾 저장소 및 프라이버시")
+        
+        st.toggle(
+            "분석 후 원본 오디오 삭제 (Storage Efficient)",
+            key="auto_delete",
+            help="활성화 시, 분석이 끝나면 용량이 큰 원본 파일은 삭제합니다.",
+            value=True
+        )
+        st.toggle(
+            "프라이버시 모드 (외부 API 차단)",
+            value=True,
+            disabled=True,
+            help="MemoRa는 기본적으로 모든 데이터를 로컬에서 처리합니다."
         )
 
-        # 2. 창의성 (Temperature)
-        temperature = st.slider(
-            "창의성 (Temperature)", 
-            min_value=0.0, max_value=1.0, 
-            value=current_config.get("temperature", 0.7),
-            help="높을수록 창의적이고, 낮을수록 사실적인 답변을 합니다."
-        )
+    # 3. 다중 수집 설정 (Placeholder)
+    with st.container(border=True):
+        st.subheader("🔗 외부 연동 (준비 중)")
+        st.text_input("Telegram Bot Token", placeholder="토큰 입력", disabled=True)
+        st.text_input("Google Drive 경로", placeholder="/mnt/gdrive", disabled=True)
 
-        st.markdown("---")
-        st.subheader("🎙️ 음성 인식 (STT) 설정")
-
-        # 3. Whisper 모델 크기 (N100 성능 고려)
-        stt_options = ["tiny", "base", "small", "medium"]
-        stt_index = 1 # 기본값 base
-        if current_config["stt_model"] in stt_options:
-            stt_index = stt_options.index(current_config["stt_model"])
-
-        selected_stt = st.selectbox(
-            "Whisper 모델 크기", 
-            stt_options, 
-            index=stt_index,
-            help="Tiny(빠름/부정확) < Base(균형) < Small(정확/느림). N100은 Base 추천."
-        )
-
-        st.markdown("---")
-        st.subheader("🧠 페르소나 설정")
-
-        # 4. 시스템 프롬프트
-        system_prompt = st.text_area(
-            "시스템 프롬프트 (AI의 역할)",
-            value=current_config.get("system_prompt", ""),
-            height=100
-        )
-
-        # 저장 버튼
-        if st.form_submit_button("설정 저장"):
-            new_config = {
-                "ai_model": selected_model,
-                "stt_model": selected_stt,
-                "temperature": temperature,
-                "system_prompt": system_prompt
-            }
-            save_config(new_config)
-            st.success("✅ 설정이 저장되었습니다! (새 설정은 다음 대화부터 적용됩니다)")
-            # 세션 갱신을 위해 리런
-            st.rerun()
+    # 설정 저장 버튼 (Streamlit은 즉시 반영되지만, 명시적 확인용)
+    if st.button("설정 상태 확인", type="primary"):
+        st.toast(f"현재 설정: Whisper-{st.session_state.whisper_model} / {st.session_state.ollama_model}", icon="✅")
