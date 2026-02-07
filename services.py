@@ -3,10 +3,14 @@ from pydub import AudioSegment
 import openai
 from faster_whisper import WhisperModel
 
-# --- 1. 오디오 최적화 파이프라인 ---
+# --- 1. 오디오 최적화 파이프라인 (업그레이드 버전) ---
 def optimize_audio(input_path, output_folder="data/storage"):
     """
-    [명세서 3-2] Optimize: FFmpeg로 mp3 64k mono 변환 -> 원본 삭제 로직 포함
+    [기능 개선]
+    1. 16kHz Mono 변환 (Whisper 최적화)
+    2. Normalize (볼륨 평준화)
+    3. High-pass Filter (200Hz 이하 잡음 제거)
+    4. MP3 64k 저장 (용량 최적화)
     """
     os.makedirs(output_folder, exist_ok=True)
     
@@ -16,21 +20,32 @@ def optimize_audio(input_path, output_folder="data/storage"):
     output_path = os.path.join(output_folder, f"{name_without_ext}_optimized.mp3")
     
     try:
+        # 오디오 로드
         audio = AudioSegment.from_file(input_path)
         
-        # 64k, mono(1 channel), 22050Hz 변환
-        audio = audio.set_channels(1).set_frame_rate(22050)
+        # [최적화 1] 채널을 Mono로, 샘플링 레이트를 16000Hz로 변경 (Whisper 표준)
+        audio = audio.set_channels(1).set_frame_rate(16000)
+        
+        # [최적화 2] 볼륨 정규화 (너무 작거나 큰 소리 평준화)
+        audio = effects.normalize(audio)
+        
+        # [최적화 3] High-pass Filter (200Hz 이하의 웅웅거리는 저음 노이즈 제거)
+        # 사람 목소리는 보통 300Hz~3400Hz 대역에 있습니다.
+        audio = audio.high_pass_filter(200)
+
+        # [최적화 4] 압축 저장 (64k는 음성 인식에 충분한 음질)
         audio.export(output_path, format="mp3", bitrate="64k")
         
         # 원본 삭제 (Privacy & Storage Efficient)
         if os.path.exists(input_path):
             os.remove(input_path)
             
+        print(f"✅ Audio optimized: {output_path}")
         return output_path
-    except Exception as e:
-        print(f"Error optimizing audio: {e}")
-        return None
 
+    except Exception as e:
+        print(f"❌ Error optimizing audio: {e}")
+        return None
 # --- 2. AI Refiner (검토 요청) ---
 def refine_text_with_ai(text, api_key, prompt_type="fix"):
     """
