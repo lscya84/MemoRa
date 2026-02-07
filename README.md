@@ -1,16 +1,3 @@
-\# 🧠 MemoRa (메모라)
-
-
-
-> \*\*"Don't just say it, MemoRa it."\*\*
-
-> 나만의 로컬 AI 회의 비서 \& 아카이브 시스템 (CPU / GPU / NPU 지원)
-
-
-
-!\[Project Status](https://img.shields.io/badge/Status-Active-green)
-
-!\[Python](https://img.shields.io/badge/Python-3.10+-blue)
 
 !\[License](https://img.shields.io/badge/License-MIT-yellow)
 

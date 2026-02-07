@@ -1,10 +1,3 @@
-\# 기술 명세서
-
-
-
-\## 1. 아키텍처
-
-\- \*\*Language:\*\* Python 3.10+
 
 \- \*\*Framework:\*\* Streamlit (UI & Logic 통합)
 

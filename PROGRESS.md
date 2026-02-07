@@ -1,8 +1,8 @@
-\# MemoRa 개발 일지
+# MemoRa 개발 일지 (음성녹음 데이터베이스)
 
 
 
-\## Phase 1: Foundation (완료)
+## Phase 1: Foundation (완료)
 - [x] 프로젝트 초기화 (Git, 문서 생성)
 - [x] 폴더 구조 생성 및 단일 Streamlit 아키텍처 확정
 - [x] `requirements.txt` 및 `docker-compose.yml` 작성
@@ -17,9 +17,9 @@
 
 
 
-\## Phase 3: Interface
-
-\- \[ ] Streamlit 웹 대시보드 (설정 페이지, 플레이어)
-
-\- \[ ] 텔레그램 봇 연동
-
+## Phase 3: Interface (진행 중)
+- [x] Streamlit 웹 대시보드 (통합 대시보드, 분석/업로드 페이지)
+- [x] 히스토리 아카이브 (DB 연동 완료)
+- [x] 설정 페이지 (Zero-Config 구현 완료)
+- [ ] 텔레그램 봇 연동
+- [ ] 구글 드라이브 감시 워커 구현

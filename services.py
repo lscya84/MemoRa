@@ -53,8 +53,8 @@ def refine_text_with_ai(text, config, prompt_type="fix"):
     """
     system_prompts = {
         "fix": "너는 전문 에디터야. 아래 텍스트의 오탈자를 수정하고 문맥을 자연스럽게 다듬어줘.",
-        "summarize": "너는 회의록 서기야. 아래 내용을 핵심 요약(Bullet point) 해줘.",
-        "action_item": "아래 내용에서 '할 일(Action Item)'만 추출해서 목록으로 만들어줘."
+        "summarize": "너는 문서 요약 전문가야. 아래 내용을 핵심 요약(Bullet point) 해줘.",
+        "action_item": "아래 내용에서 주요 키워드나 '중요 사항'을 추출해서 목록으로 만들어줘."
     }
     system_prompt = system_prompts.get(prompt_type, "fix")
 

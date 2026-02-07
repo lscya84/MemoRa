@@ -4,11 +4,11 @@ import sys
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from views.meeting import meeting_page
+from views.analyze import analyze_page
 from views.chat import chat_page
 from views.history import history_page
 from views.settings import settings_page
-from database import SessionLocal, SystemConfig, init_db
+from database import SessionLocal, SystemConfig, Recording, init_db
 
 st.set_page_config(page_title="MemoRa", page_icon="🧠", layout="wide")
 
@@ -54,7 +54,7 @@ def main():
         
         menu = st.radio(
             "메뉴",
-            ["Dashboard", "Meeting (분석)", "Chat (비서)", "History (기록)", "Settings (설정)"],
+            ["Dashboard", "Analyze (분석)", "Chat (비서)", "History (기록)", "Settings (설정)"],
         )
         
         st.markdown("---")
@@ -63,14 +63,20 @@ def main():
 
     if "Dashboard" in menu:
         st.title("📊 MemoRa Dashboard")
-        col1, col2, col3 = st.columns(3)
-        with col1: st.metric("STT Model", st.session_state.whisper_model, st.session_state.whisper_device)
-        with col2: st.metric("LLM Model", st.session_state.ollama_model)
-        # History 건수는 실제 DB에서 가져오도록 추후 개선 가능
-        with col3: st.metric("Status", "Ready")
+        
+        db = SessionLocal()
+        try:
+            total_count = db.query(Recording).count()
+        finally:
+            db.close()
 
-    elif "Meeting" in menu:
-        meeting_page()
+        col1, col2, col3 = st.columns(3)
+        with col1: st.metric("STT Engine", st.session_state.whisper_model, st.session_state.whisper_device)
+        with col2: st.metric("LLM Model", st.session_state.ollama_model)
+        with col3: st.metric("Saved Recordings", f"{total_count} 건")
+
+    elif "Analyze" in menu:
+        analyze_page()
     elif "Chat" in menu:
         chat_page()
     elif "History" in menu:
