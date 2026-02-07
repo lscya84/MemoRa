@@ -29,7 +29,8 @@ def load_settings():
             "ollama_url": "http://localhost:11434",
             "ollama_model": "gemma2:2b",
             "auto_delete": "True",
-            "api_key": ""
+            "api_key": "",
+            "gdrive_folder_id": ""
         }
         
         for key, default_val in defaults.items():
@@ -60,6 +61,21 @@ def main():
         st.markdown("---")
         st.caption(f"🔧 Engine: {st.session_state.whisper_model}")
         st.caption(f"🧠 LLM: {st.session_state.ollama_model}")
+
+        # --- Disk Usage Monitoring ---
+        import shutil
+        total, used, free = shutil.disk_usage("/")
+        usage_percent = (used / total) * 100
+        
+        st.markdown("---")
+        st.subheader("💾 Storage Usage")
+        st.progress(used / total)
+        st.caption(f"Used: {used / (1024**3):.1f} GB / Total: {total / (1024**3):.1f} GB ({usage_percent:.1f}%)")
+        
+        if usage_percent > 90:
+            st.error("⚠️ Storage is almost full!")
+        elif usage_percent > 70:
+            st.warning("⚡ Storage usage is high.")
 
     if "Dashboard" in menu:
         st.title("📊 MemoRa Dashboard")

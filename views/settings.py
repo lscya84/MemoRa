@@ -79,11 +79,41 @@ def settings_page():
             help="MemoRa는 기본적으로 모든 데이터를 로컬에서 처리합니다."
         )
 
-    # 3. 다중 수집 설정 (Placeholder)
+    # 3. 외부 연동 및 동기화
     with st.container(border=True):
-        st.subheader("🔗 외부 연동 (준비 중)")
-        st.text_input("Telegram Bot Token", placeholder="토큰 입력", disabled=True)
-        st.text_input("Google Drive 경로", placeholder="/mnt/gdrive", disabled=True)
+        st.subheader("🔗 외부 연동 (Google Drive)")
+        
+        st.info("Google Drive API를 사용하려면 `credentials.json` 파일이 프로젝트 루트에 있어야 합니다.")
+        
+        gdrive_folder_id = st.text_input(
+            "Google Drive Folder ID",
+            key="gdrive_folder_id",
+            on_change=lambda: save_setting("gdrive_folder_id", st.session_state.gdrive_folder_id),
+            placeholder="folder-id-string-here",
+            help="동기화할 구글 드라이브 폴더의 ID를 입력하세요."
+        )
+
+        col1, col2 = st.columns([1, 4])
+        with col1:
+            if st.button("지금 동기화", type="secondary", use_container_width=True):
+                with st.spinner("구글 드라이브에서 파일을 가져오는 중..."):
+                    try:
+                        from gdrive_service import sync_from_gdrive
+                        result = sync_from_gdrive(st.session_state.gdrive_folder_id)
+                        if "Error" in result:
+                            st.error(result)
+                        else:
+                            st.success(result)
+                            st.info("가져온 파일은 'Analyze' 메뉴에서 분석할 수 있습니다.")
+                    except Exception as e:
+                        st.error(f"동기화 중 오류 발생: {e}")
+        with col2:
+             st.caption("폴더 내의 신규 오디오 파일(.mp3, .m4a, .wav)을 자동으로 수집합니다.")
+
+        st.text_input("Telegram Bot Token", 
+                     placeholder="토큰 입력 (준비 중)", 
+                     disabled=True,
+                     help="텔레그램으로 음성을 보내면 자동으로 분석되도록 업데이트 예정입니다.")
 
     # 설정 저장 버튼 (Streamlit은 즉시 반영되지만, 명시적 확인용)
     if st.button("설정 상태 확인", type="primary"):
