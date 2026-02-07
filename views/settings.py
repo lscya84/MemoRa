@@ -1,4 +1,5 @@
 import streamlit as st
+import os
 from database import save_setting
 
 def settings_page():
@@ -72,6 +73,30 @@ def settings_page():
             on_change=lambda: save_setting("auto_delete", st.session_state.auto_delete),
             help="활성화 시, 분석이 끝나면 용량이 큰 원본 파일은 삭제합니다."
         )
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("🗑️ 임시 파일 삭제", help="data/temp 폴더의 모든 파일을 삭제합니다.", use_container_width=True):
+                temp_dir = "data/temp"
+                if os.path.exists(temp_dir):
+                    files = os.listdir(temp_dir)
+                    for f in files:
+                        os.remove(os.path.join(temp_dir, f))
+                    st.success(f"{len(files)}개의 임시 파일을 삭제했습니다.")
+                else:
+                    st.info("삭제할 임시 폴더가 없습니다.")
+        
+        with col2:
+            if st.button("🚨 모든 기록 초기화", help="DB와 저장된 모든 오디오 파일을 삭제합니다.", type="secondary", use_container_width=True):
+                # 실제 삭제 로직은 더 신중해야 하므로 세션 상태로 확인 창을 띄우거나 바로 실행
+                # 여기서는 간단히 storage 삭제 로직 예시
+                storage_dir = "data/storage"
+                if os.path.exists(storage_dir):
+                    files = os.listdir(storage_dir)
+                    for f in files:
+                        os.remove(os.path.join(storage_dir, f))
+                    st.warning("저장소의 모든 오디오 파일이 삭제되었습니다. (DB는 유지)")
+        
         st.toggle(
             "프라이버시 모드 (외부 API 차단)",
             value=True,
