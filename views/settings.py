@@ -55,6 +55,23 @@ def settings_page():
                 placeholder="예: gemma2:2b, llama3",
                 help="Ollama에 설치된 모델 이름을 입력하세요."
             )
+            
+            if st.button("🔌 Ollama 연결 테스트", use_container_width=True):
+                import requests
+                try:
+                    url = f"{st.session_state.ollama_url}/api/tags"
+                    response = requests.get(url, timeout=5)
+                    if response.status_code == 200:
+                        models = [m['name'] for m in response.json().get('models', [])]
+                        if st.session_state.ollama_model in models:
+                            st.success(f"연결 성공! '{st.session_state.ollama_model}' 모델이 준비되었습니다.")
+                        else:
+                            st.warning(f"연결 성공! 하지만 '{st.session_state.ollama_model}' 모델이 없습니다. (설치된 모델: {', '.join(models)})")
+                    else:
+                        st.error(f"연결 실패 (HTTP {response.status_code})")
+                except Exception as e:
+                    st.error(f"연결 오류: {e}\nURL: {st.session_state.ollama_url}")
+
             st.text_input(
                 "API Key (Fallback)",
                 key="api_key",

@@ -26,7 +26,7 @@ def load_settings():
             "whisper_model": "base",
             "whisper_device": "cpu",
             "whisper_compute": "int8",
-            "ollama_url": "http://localhost:11434",
+            "ollama_url": os.getenv("OLLAMA_URL", "http://localhost:11434"),
             "ollama_model": "gemma2:2b",
             "auto_delete": "True",
             "api_key": "",
