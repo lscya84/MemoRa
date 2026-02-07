@@ -10,8 +10,6 @@ services:
     volumes:
       - ./:/app            # 코드는 실시간 반영 (개발용)
       - ./data:/app/data   # 데이터는 로컬에 저장
-      # memora.db는 자동 생성되므로 굳이 명시 안 해도 되지만, 유지하려면 아래 주석 해제
-      # - ./memora.db:/app/memora.db
     environment:
       - TZ=Asia/Seoul
       - OLLAMA_URL=http://ollama:11434
