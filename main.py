@@ -4,10 +4,10 @@ import sys
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
+from views.meeting import meeting_page
 from views.chat import chat_page
 from views.history import history_page
-from views.meeting import meeting_page
-from views.settings import settings_page  # <--- 추가됨
+from views.settings import settings_page
 
 st.set_page_config(page_title="MemoRa", page_icon="🧠", layout="wide")
 
