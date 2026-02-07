@@ -1,23 +1,30 @@
 version: '3.8'
 
 services:
+  # 1. 메인 앱 (Streamlit)
   memora-app:
     build: .
-    container_name: memora_container
+    container_name: memora_app
     restart: unless-stopped
     ports:
-      - "8501:8501"  # Web UI
-      - "8000:8000"  # API Server
+      - "8501:8501"
     volumes:
-      - ./app:/app/app        # Hot Reload
-      - ./data:/app/data      # Data Storage
+      - ./app:/app/app
+      - ./data:/app/data
     environment:
       - TZ=Asia/Seoul
-    # GPU 사용을 원할 경우 주석 해제 (NVIDIA)
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: 1
-    #           capabilities: [gpu]
+      # [중요] 도커 네트워크 내부의 'ollama' 컨테이너 주소
+      - OLLAMA_URL=http://ollama:11434
+    depends_on:
+      - ollama
+
+  # 2. 로컬 AI (Ollama)
+  ollama:
+    image: ollama/ollama:latest
+    container_name: memora_ollama
+    restart: unless-stopped
+    volumes:
+      # 모델 데이터를 호스트에 저장 (재부팅 해도 모델 유지)
+      - ./data/ollama:/root/.ollama
+    ports:
+      - "11434:11434"
