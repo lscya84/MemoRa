@@ -1,4 +1,3 @@
-text
 fastapi
 uvicorn
 streamlit
@@ -9,4 +8,3 @@ requests
 watchdog
 pydub
 python-multipart
-# 추후 nvidia gpu 사용시 torch 등 추가 필요할 수 있음 (Docker 이미지에서 처리 권장)
