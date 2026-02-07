@@ -8,3 +8,4 @@ requests
 watchdog
 pydub
 python-multipart
+openai
