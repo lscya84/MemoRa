@@ -8,26 +8,44 @@ from views.meeting import meeting_page
 from views.chat import chat_page
 from views.history import history_page
 from views.settings import settings_page
+from database import SessionLocal, SystemConfig, init_db
 
 st.set_page_config(page_title="MemoRa", page_icon="🧠", layout="wide")
 
-# === Zero-Config 초기값 설정 ===
-def init_settings():
-    defaults = {
-        "whisper_model": "base",
-        "whisper_device": "cpu",
-        "whisper_compute": "int8",
-        "ollama_url": "http://localhost:11434",
-        "ollama_model": "gemma2:2b",
-        "auto_delete": False,
-        "meeting_history": []
-    }
-    for key, value in defaults.items():
-        if key not in st.session_state:
-            st.session_state[key] = value
+# DB 초기화
+init_db()
+
+# === Zero-Config DB 영속성 관리 ===
+def load_settings():
+    db = SessionLocal()
+    try:
+        configs = db.query(SystemConfig).all()
+        db_settings = {c.key: c.value for c in configs}
+        
+        defaults = {
+            "whisper_model": "base",
+            "whisper_device": "cpu",
+            "whisper_compute": "int8",
+            "ollama_url": "http://localhost:11434",
+            "ollama_model": "gemma2:2b",
+            "auto_delete": "True",
+            "api_key": ""
+        }
+        
+        for key, default_val in defaults.items():
+            # DB에 있으면 DB값, 없으면 기본값 사용
+            val = db_settings.get(key, default_val)
+            # Boolean 처리
+            if val == "True": val = True
+            elif val == "False": val = False
+            
+            if key not in st.session_state:
+                st.session_state[key] = val
+    finally:
+        db.close()
 
 def main():
-    init_settings() # 앱 실행 시 설정 로드
+    load_settings() # 앱 실행 시 DB에서 설정 로드
 
     with st.sidebar:
         st.title("🧠 MemoRa")
@@ -40,7 +58,6 @@ def main():
         )
         
         st.markdown("---")
-        # 사이드바에 현재 핵심 설정 상태 표시
         st.caption(f"🔧 Engine: {st.session_state.whisper_model}")
         st.caption(f"🧠 LLM: {st.session_state.ollama_model}")
 
@@ -49,7 +66,8 @@ def main():
         col1, col2, col3 = st.columns(3)
         with col1: st.metric("STT Model", st.session_state.whisper_model, st.session_state.whisper_device)
         with col2: st.metric("LLM Model", st.session_state.ollama_model)
-        with col3: st.metric("Total Memos", f"{len(st.session_state.meeting_history)}건")
+        # History 건수는 실제 DB에서 가져오도록 추후 개선 가능
+        with col3: st.metric("Status", "Ready")
 
     elif "Meeting" in menu:
         meeting_page()

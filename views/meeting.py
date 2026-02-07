@@ -1,7 +1,7 @@
 import streamlit as st
 import os
 from faster_whisper import WhisperModel
-from services import optimize_audio, refine_text_with_ai
+from services import optimize_audio, refine_text_with_ai, transcribe_audio
 # DB 관련 모듈을 정확히 명시
 from database import SessionLocal, Recording, Transcript, init_db
 
@@ -48,29 +48,26 @@ def meeting_page():
                 status.update(label="작업 실패", state="error")
                 return
 
-            # [Step 2] Analyze (STT)
-            status.write("📝 Whisper AI가 받아쓰는 중...")
-            
-            try:
-                # 설정값 가져오기 (main.py의 session_state 사용)
+            try: # try 블록은 그대로 유지
+                # [Step 2] Analyze (STT)
+                status.write("📝 Whisper AI가 받아쓰는 중...")
+                
+                # 설정값 가져오기
                 w_size = st.session_state.get("whisper_model", "base")
                 w_device = st.session_state.get("whisper_device", "cpu")
                 w_compute = st.session_state.get("whisper_compute", "int8")
                 
                 model = load_model(w_size, w_device, w_compute)
-                segments, _ = model.transcribe(optimized_path, beam_size=5)
-                
-                full_text = ""
-                for segment in segments:
-                    full_text += segment.text + " "
+                full_text, segments_list = transcribe_audio(model, optimized_path) # transcribe_audio 함수 사용
                 
                 status.write("✅ 분석 완료!")
                 
-                # 결과 세션 저장 (화면 리프레시 대응)
+                # 결과 세션 저장
                 st.session_state.current_script = full_text
+                st.session_state.current_segments = segments_list # segments_list 추가 저장
                 st.session_state.optimized_path = optimized_path
 
-                # [Step 3] DB Archive (메타데이터 저장)
+                # [Step 3] DB Archive
                 status.write("🗂️ 데이터베이스 저장 중...")
                 db = SessionLocal()
                 
@@ -78,17 +75,18 @@ def meeting_page():
                 new_rec = Recording(
                     filename=os.path.basename(optimized_path),
                     file_path=optimized_path,
-                    file_size=os.path.getsize(optimized_path) / (1024*1024), # MB 단위
+                    file_size=os.path.getsize(optimized_path) / (1024*1024),
                     processed=1
                 )
                 db.add(new_rec)
-                db.commit()     # ID 생성을 위해 커밋
-                db.refresh(new_rec) # 생성된 ID 가져오기
+                db.commit()
+                db.refresh(new_rec)
                 
-                # 3-2. Transcript 정보 저장
+                # 3-2. Transcript 정보 저장 (segments_json 포함)
                 new_trans = Transcript(
                     recording_id=new_rec.id,
                     full_text=full_text,
+                    segments_json=segments_list, # segments_json 필드에 저장
                     version=1
                 )
                 db.add(new_trans)
@@ -133,7 +131,13 @@ def meeting_page():
                         }
                         
                         try:
-                            result = refine_text_with_ai(script_area, refiner_api_key, mode_map[refiner_mode])
+                            # Ollama 및 API Key 정보 전달
+                            ai_config = {
+                                "ollama_url": st.session_state.get("ollama_url"),
+                                "ollama_model": st.session_state.get("ollama_model"),
+                                "api_key": refiner_api_key
+                            }
+                            result = refine_text_with_ai(script_area, ai_config, mode_map[refiner_mode])
                             
                             st.success("검토 완료!")
                             st.text_area("AI 제안 결과", value=result, height=200)

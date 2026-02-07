@@ -12,6 +12,11 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 # --- 모델 정의 (명세서 기반) ---
+class SystemConfig(Base):
+    __tablename__ = "system_configs"
+    key = Column(String, primary_key=True)
+    value = Column(String)
+
 class Recording(Base):
     __tablename__ = "recordings"
     
@@ -20,7 +25,7 @@ class Recording(Base):
     file_path = Column(String)
     duration = Column(Float)
     file_size = Column(Float) # MB 단위
-    created_at = Column(DateTime, default=datetime.now)
+    created_at = Column(DateTime, default=datetime.utcnow)
     processed = Column(Integer, default=0) # 0: 미처리, 1: 처리완료
 
 class Transcript(Base):
@@ -30,9 +35,10 @@ class Transcript(Base):
     recording_id = Column(Integer, index=True)
     full_text = Column(Text)
     summary = Column(Text)
-    tags = Column(String) # JSON string or comma separated
-    segments_json = Column(JSON) # 타임스탬프
+    tags = Column(String) 
+    segments_json = Column(JSON) # 타임스탬프: [{start, end, text}, ...]
     version = Column(Integer, default=1)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
 # DB 초기화 함수
 def init_db():
@@ -42,5 +48,17 @@ def get_db():
     db = SessionLocal()
     try:
         yield db
+    finally:
+        db.close()
+
+def save_setting(key, value):
+    db = SessionLocal()
+    try:
+        config = db.query(SystemConfig).filter(SystemConfig.key == key).first()
+        if config:
+            config.value = str(value)
+        else:
+            db.add(SystemConfig(key=key, value=str(value)))
+        db.commit()
     finally:
         db.close()

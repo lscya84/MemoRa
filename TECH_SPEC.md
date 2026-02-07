@@ -6,7 +6,7 @@
 
 \- \*\*Language:\*\* Python 3.10+
 
-\- \*\*Framework:\*\* FastAPI (Backend), Streamlit (Frontend)
+\- \*\*Framework:\*\* Streamlit (UI & Logic 통합)
 
 \- \*\*Database:\*\* SQLite (SQLAlchemy ORM) - 설정값과 데이터를 단일 파일로 관리.
 

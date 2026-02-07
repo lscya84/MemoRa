@@ -1,4 +1,5 @@
 import streamlit as st
+from database import save_setting
 
 def settings_page():
     st.header("⚙️ 시스템 설정 (Zero-Config)")
@@ -14,11 +15,11 @@ def settings_page():
         
         with col1:
             st.markdown("#### 🗣️ STT (Whisper)")
-            # Whisper 모델 크기 선택
             st.selectbox(
                 "Whisper 모델 크기",
                 ["tiny", "base", "small", "medium", "large-v3"],
                 key="whisper_model",
+                on_change=lambda: save_setting("whisper_model", st.session_state.whisper_model),
                 help="N100 등 저전력 서버는 'tiny' 또는 'base' 권장"
             )
             # 하드웨어 가속 설정
@@ -26,12 +27,14 @@ def settings_page():
                 "연산 장치 (Device)",
                 ["cpu", "cuda", "auto"],
                 key="whisper_device",
+                on_change=lambda: save_setting("whisper_device", st.session_state.whisper_device),
                 help="GPU가 없으면 'cpu'를 선택하세요."
             )
             st.selectbox(
                 "정밀도 (Compute Type)",
                 ["int8", "float16", "float32"],
                 key="whisper_compute",
+                on_change=lambda: save_setting("whisper_compute", st.session_state.whisper_compute),
                 help="int8은 메모리를 적게 사용합니다 (N100 권장)."
             )
 
@@ -41,13 +44,22 @@ def settings_page():
             st.text_input(
                 "Ollama 서버 URL",
                 key="ollama_url",
+                on_change=lambda: save_setting("ollama_url", st.session_state.ollama_url),
                 help="예: http://localhost:11434"
             )
             st.text_input(
                 "사용할 모델명",
                 key="ollama_model",
+                on_change=lambda: save_setting("ollama_model", st.session_state.ollama_model),
                 placeholder="예: gemma2:2b, llama3",
                 help="Ollama에 설치된 모델 이름을 입력하세요."
+            )
+            st.text_input(
+                "API Key (Fallback)",
+                key="api_key",
+                type="password",
+                on_change=lambda: save_setting("api_key", st.session_state.api_key),
+                help="Ollama가 안될 때 사용할 OpenAI/Gemini 키"
             )
 
     # 2. 저장소 및 프라이버시 (Storage Efficient & Privacy)
@@ -57,8 +69,8 @@ def settings_page():
         st.toggle(
             "분석 후 원본 오디오 삭제 (Storage Efficient)",
             key="auto_delete",
-            help="활성화 시, 분석이 끝나면 용량이 큰 원본 파일은 삭제합니다.",
-            value=True
+            on_change=lambda: save_setting("auto_delete", st.session_state.auto_delete),
+            help="활성화 시, 분석이 끝나면 용량이 큰 원본 파일은 삭제합니다."
         )
         st.toggle(
             "프라이버시 모드 (외부 API 차단)",
