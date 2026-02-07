@@ -18,8 +18,9 @@ CMD ["streamlit", "run", "main.py", "--server.port=8501", "--server.address=0.0.
 # 8501: Streamlit 웹 UI
 # 8000: Backend API (추후 확장용)
 EXPOSE 8501 8000
+# [추가] entrypoint.sh 파일에 실행 권한 부여
+RUN chmod +x entrypoint.sh
 
-# 8. 실행 명령
-# entrypoint.sh를 먼저 실행하여 AI 모델을 준비한 뒤, Streamlit을 실행함
+# 실행 명령어
 ENTRYPOINT ["./entrypoint.sh"]
-CMD ["streamlit", "run", "app/web/main.py", "--server.address=0.0.0.0"]
+# 또는 CMD ["./entrypoint.sh"] (작성하신 내용에 따라)
