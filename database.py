@@ -1,11 +1,13 @@
 import os
-from sqlalchemy import create_engine, Column, Integer, String, Float, Text, JSON, DateTime
+from sqlalchemy import create_engine, Column, Integer, String, Float, Text, JSON, DateTime, inspect, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
 
-# SQLite DB 파일 생성
-DATABASE_URL = "sqlite:///memora.db"
+# SQLite DB 파일 경로 (Docker 볼륨 마운트 고려)
+DB_DIR = "data/db"
+os.makedirs(DB_DIR, exist_ok=True)
+DATABASE_URL = f"sqlite:///{DB_DIR}/memora.db"
 
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -43,6 +45,16 @@ class Transcript(Base):
 # DB 초기화 함수
 def init_db():
     Base.metadata.create_all(bind=engine)
+    
+    # --- Zero-Config Migration: missing columns check ---
+    inspector = inspect(engine)
+    columns = [c['name'] for c in inspector.get_columns('transcripts')]
+    
+    if 'updated_at' not in columns:
+        with engine.connect() as conn:
+            conn.execute(text("ALTER TABLE transcripts ADD COLUMN updated_at DATETIME"))
+            conn.commit()
+            print("🚀 Migrated: Added 'updated_at' column to 'transcripts' table.")
 
 def get_db():
     db = SessionLocal()

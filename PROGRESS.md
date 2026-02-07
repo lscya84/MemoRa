@@ -12,6 +12,7 @@
 - [x] `services.py` (FFmpeg 최적화 로직 및 Whisper 통합)
 - [x] `services.py` (Ollama & OpenAI Refiner 연동)
 - [x] `main.py` (Zero-Config DB 영속성 레이어)
+- [x] `database.py` (SQLite Column 자동 생성 - Migration 로직)
 - [ ] 텔레그램 봇 및 드라이브 감시 워커 구현 (Background Thread)
 
 
