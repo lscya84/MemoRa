@@ -1,17 +1,17 @@
-# Python
+# .gitignore
+
+# Python 캐시
 __pycache__/
 *.py[cod]
-venv/
+
+# 환경 변수 (API KEY 유출 방지)
 .env
 
-# Data & DB (개인 데이터는 절대 공개되면 안 됨)
+# 데이터 저장소 (내 회의록이 올라가면 안 됨)
 data/
 *.db
-*.log
-*.mp3
-*.wav
-*.m4a
+memora.db
 
-# OS
+# OS 생성 파일
 .DS_Store
 Thumbs.db
